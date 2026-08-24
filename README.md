@@ -1,64 +1,119 @@
 # Production Site Autopilot for OpenAI Codex
 
-Универсальный инструмент для создания, подключения, аудита, редизайна, исправления, миграции и доведения сайтов до production с помощью Codex.
+Инструмент для безопасного аудита, создания, подключения, редизайна, исправления и миграции сайтов с помощью Codex.
 
-## Две редакции
+> Текущая версия исходников — **v7.2.0-beta.1**. Детерминированные проверки находятся в репозитории и воспроизводятся в CI. Реальный автономный прогон Codex или production deployment никогда не считается выполненным без отдельного машинного evidence-файла со статусом `PASS` для текущего commit.
 
-| Редакция | Назначение |
-|---|---|
-| **User Edition** | Одна точка входа, автоматический выбор режима и минимальное участие пользователя |
-| **Engineering Edition** | Полный Skill, contracts, gates, stack playbooks, validators, tests и release tooling |
+## Что исправлено в v7.2
 
-После публикации релиза обе редакции доступны на странице [Releases](../../releases/tag/v7.1.0).
+- исходный код, Skill, схемы, fixtures, тесты, установщики и release tooling доступны для просмотра в Git;
+- удалены Base64/xz bundle, materializer, зависимость от постороннего репозитория и force-push publisher;
+- безопасные границы исполняются policy-движком `ALLOW / CONFIRM / DENY`;
+- низкая уверенность определения существующего проекта автоматически включает `audit-only`, но пустой каталог корректно остаётся `greenfield`;
+- содержимое проекта считается недоверенным вводом и не может отменить policy;
+- пути ограничены выбранным workspace, symlink/reparse-point escape отклоняется;
+- перед изменениями обязателен baseline, после изменений создаётся manifest, а rollback проверяет конфликты и целостность backup;
+- секретоподобные и слишком большие файлы не копируются в evidence, а raw Git diff с потенциальными секретами не сохраняется;
+- отчёты создаются в JSON, Markdown и HTML по версионированной схеме;
+- production-ready формализован через профили и итоговые статусы;
+- Linux, macOS и Windows проверяются в CI;
+- release содержит воспроизводимые ZIP, SHA-256, test evidence, CycloneDX SBOM и provenance;
+- stable release блокируется, пока обязательные live/Windows evidence не имеют `PASS` для того же commit.
 
-## Быстрый запуск User Edition
+## Структура
+
+```text
+src/production_site_autopilot/     исполняемый runtime
+plugin/                            Skill и метаданные поставки
+installers/                        install/update/doctor/rollback/uninstall
+schemas/                           JSON Schemas
+tests/                             детерминированные проверки
+fixtures/ и evals/                 эталонные проекты и behavioral contracts
+scripts/                           verification и release tooling
+docs/                              архитектура, профили, threat model
+evidence/                          PASS / FAIL / NOT_RUN внешних проверок
+.github/workflows/                 CI, CodeQL, live eval и release
+```
+
+## Установка в проект
 
 ### Windows
 
-1. Скачайте `production-site-autopilot-codex-user-v7.1.0.zip`.
-2. Распакуйте архив.
-3. Запустите `START_SITE_AUTOPILOT_WINDOWS.cmd`.
-4. Выберите каталог проекта.
-
-После установки можно открыть любой проект в Codex и написать:
-
-```text
-Создай или доведи этот сайт до production. Сам всё проанализируй, исправь и проверь.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File installers\install.ps1 -Action Install -ProjectPath "C:\path\to\site"
 ```
 
-Autopilot сам определяет режим и стек, создаёт безопасную конфигурацию, выполняет доступную работу, повторяет проверки и сохраняет итог в:
+Либо:
+
+```cmd
+installers\START_SITE_AUTOPILOT_WINDOWS.cmd "C:\path\to\site"
+```
+
+### macOS / Linux
+
+```bash
+sh installers/install.sh install /path/to/site
+```
+
+Skill устанавливается локально в:
 
 ```text
-.production-site/results/latest.md
+<project>/.codex/skills/production-site-autopilot/
+```
+
+Административные права не нужны. Повторная установка работает как update и сохраняет предыдущую управляемую копию для installer rollback.
+
+После установки откройте проект в Codex и напишите:
+
+```text
+Доведи этот сайт до production-ready состояния. Сначала выполни безопасный preflight, сам определи режим и стек, затем сделай всю разрешённую работу и сохрани evidence.
+```
+
+## Проверка репозитория
+
+```bash
+PYTHONPATH=src python scripts/run_checks.py
+PYTHONPATH=src python -m production_site_autopilot doctor .
+PYTHONPATH=src python -m production_site_autopilot detect .
+python scripts/build_release.py --output-dir dist
+```
+
+Результаты работы проекта сохраняются в:
+
+```text
 .production-site/results/latest.json
+.production-site/results/latest.md
+.production-site/results/latest.html
+.production-site/runs/<run-id>/
 ```
-
-## Содержимое репозитория
-
-```text
-user/          # распакованная пользовательская редакция v7.1.0
-engineering/   # распакованная инженерная редакция v7.1.0
-.github/       # автоматическая проверка и публикация релиза
-SHA256SUMS     # контрольные суммы релизных ZIP
-```
-
-## Контрольные суммы v7.1.0
-
-```text
-90a118d52020b2307c8447ea81ad6cd520492d255a274440adaa0cf03d257886  production-site-autopilot-codex-user-v7.1.0.zip
-97666e9ba94e41a7c4cd103d3023bf1fd7c243f15ef43dec96fa45822dfaaac6  production-site-autopilot-codex-engineering-v7.1.0.zip
-```
-
-## Проверенный статус
-
-- artifact coverage: **80/80 PASS**;
-- configuration scenarios: **18/18 PASS**;
-- validator regression tests: **14/14 PASS**;
-- Autopilot deterministic tests: **9/9 PASS**;
-- UX и lifecycle checks: **36/36 PASS**;
-- live Codex behavioral suite: **NOT_RUN**;
-- native Windows runtime в исходной Linux-среде сборки: **NOT_RUN**.
 
 ## Безопасные границы
 
-Без отдельного решения пользователя Autopilot не меняет URL, домен или основной стек, не удаляет страницы и данные, не публикует неподтверждённые claims, не включает tracking, не покупает услуги и не выполняет production deployment. Блокирующие решения объединяются максимум в один вопрос.
+Автоматически разрешены чтение, локальные тесты, локальная сборка, отчётность и обратимые изменения внутри workspace после создания baseline. Подтверждение владельца требуется для удаления, установки зависимостей, сетевых действий, изменения домена, аналитики, CI, push, database migration и deployment. Покупки, вывод/отправка секретов, обход policy, запись вне workspace, force-push и переписывание истории запрещены.
+
+Один checkpoint содержит максимум один **консолидированный пакет решений**, но неизвестные юридические, коммерческие, брендовые и продуктовые решения не подменяются догадками. Независимая безопасная работа продолжается.
+
+## Production-ready профили
+
+- `MARKETING_SITE`
+- `WEB_APPLICATION`
+- `COMMERCE`
+- `REGULATED_OR_HIGH_RISK` — только аудит, пока не подключена отдельная доменная policy
+
+Итоговые статусы:
+
+```text
+AUDIT_COMPLETE
+READY_FOR_REVIEW
+READY_FOR_PREVIEW
+READY_FOR_DEPLOYMENT
+READY_WITH_DEFERRED_ITEMS
+BLOCKED
+FAILED
+```
+
+## Честность evidence
+
+`PASS` допустим только при наличии evidence и привязки к проверяемому commit. `NOT_RUN` не преобразуется в PASS. Beta может публиковаться с явно указанным `NOT_RUN`; stable — нет.
+
+Лицензия явно разрешает скачивание, установку и локальное использование. Уязвимости сообщаются по правилам [SECURITY.md](SECURITY.md).
