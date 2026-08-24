@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "production-site-autopilot"
+version = "7.2.0b1"
+description = "Safety-oriented production-site workflow runtime and Codex skill"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE.md" }
+authors = [{ name = "ub3dqy" }]
+dependencies = []
+
+[project.scripts]
+production-site-autopilot = "production_site_autopilot.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
