@@ -1,0 +1,51 @@
+name: Materialize browsable source
+
+on:
+  push:
+    branches:
+      - codex/remediate-v7.2.0
+    paths:
+      - .github/workflows/materialize-source.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: materialize-source-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out remediation branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Verify and materialize embedded source
+        run: |
+          set -euo pipefail
+          python prepare_editions.py
+          test -f user/README.md
+          test -f engineering/README.md
+
+      - name: Commit browsable editions
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add user engineering
+          if git diff --cached --quiet; then
+            echo "Browsable editions are already materialized."
+          else
+            git commit -m "source: publish browsable User and Engineering editions"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
