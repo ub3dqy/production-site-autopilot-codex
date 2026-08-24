@@ -1,0 +1,35 @@
+name: Live Codex behavioral evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      require:
+        description: Fail when live execution is unavailable or any scenario fails
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: live-codex-evaluation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run configured live suite
+        env:
+          CODEX_EVAL_COMMAND: ${{ secrets.CODEX_EVAL_COMMAND }}
+          PYTHONPATH: src
+        run: python scripts/live_codex_eval.py ${{ inputs.require && '--require' || '' }}
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-codex-evidence
+          path: evidence/live-codex.json
+          if-no-files-found: error
