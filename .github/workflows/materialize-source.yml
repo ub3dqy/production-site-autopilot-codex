@@ -6,21 +6,28 @@ on:
       - codex/remediate-v7.2.0
     paths:
       - .github/workflows/materialize-source.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/materialize-source.yml
+      - prepare_editions.py
+      - packages/**
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: materialize-source-${{ github.ref }}
-  cancel-in-progress: false
+  group: materialize-source-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   materialize:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out remediation branch
+      - name: Check out source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -36,16 +43,12 @@ jobs:
           python prepare_editions.py
           test -f user/README.md
           test -f engineering/README.md
+          tar -czf materialized-editions.tar.gz user engineering
 
-      - name: Commit browsable editions
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add user engineering
-          if git diff --cached --quiet; then
-            echo "Browsable editions are already materialized."
-          else
-            git commit -m "source: publish browsable User and Engineering editions"
-            git push origin HEAD:${GITHUB_REF_NAME}
-          fi
+      - name: Upload materialized editions
+        uses: actions/upload-artifact@v4
+        with:
+          name: materialized-editions
+          path: materialized-editions.tar.gz
+          if-no-files-found: error
+          retention-days: 7
