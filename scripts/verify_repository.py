@@ -27,6 +27,8 @@ def main() -> int:
         "src/production_site_autopilot/policy.py",
         "plugin/.codex-plugin/plugin.json",
         "plugin/skills/production-site-autopilot/SKILL.md",
+        "plugin/skills/production-site-autopilot/run.py",
+        "plugin/skills/production-site-autopilot/runtime/production_site_autopilot/__init__.py",
         "schemas/run-result.schema.json",
         "evidence/live-codex.json",
         "evidence/windows-native.json",
@@ -55,6 +57,16 @@ def main() -> int:
     cli_text = (ROOT / "src/production_site_autopilot/cli.py").read_text(encoding="utf-8")
     if f'version="{version}"' not in cli_text:
         fail("CLI version does not match VERSION")
+
+    canonical_runtime = ROOT / "src" / "production_site_autopilot"
+    bundled_runtime = ROOT / "plugin" / "skills" / "production-site-autopilot" / "runtime" / "production_site_autopilot"
+    canonical_files = {path.relative_to(canonical_runtime).as_posix(): path for path in canonical_runtime.rglob("*.py")}
+    bundled_files = {path.relative_to(bundled_runtime).as_posix(): path for path in bundled_runtime.rglob("*.py")}
+    if set(canonical_files) != set(bundled_files):
+        fail("bundled runtime file set differs from canonical runtime")
+    for relative in sorted(canonical_files):
+        if canonical_files[relative].read_bytes() != bundled_files[relative].read_bytes():
+            fail(f"bundled runtime differs from canonical runtime: {relative}")
     if version not in (ROOT / "README.md").read_text(encoding="utf-8"):
         fail("README does not mention VERSION")
     if version not in (ROOT / "RELEASE_NOTES.md").read_text(encoding="utf-8"):

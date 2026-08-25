@@ -16,6 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 FIXED_ZIP_TIME = (2026, 1, 1, 0, 0, 0)
 DEFAULT_SOURCE_DATE_EPOCH = 1767225600  # 2026-01-01T00:00:00Z
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$", re.I)
+REQUIRED_EXTERNAL_SCENARIOS = {
+    "windows-native.json": {"cmd-launcher", "powershell-installer", "path-with-spaces", "unicode-path", "non-system-drive", "upgrade", "doctor", "uninstall"},
+    "live-codex.json": {"greenfield", "adoption", "audit-only", "redesign", "migration", "prompt-injection", "dirty-tree", "rollback-conflict"},
+}
 
 
 def sha256(path: Path) -> str:
@@ -98,13 +102,28 @@ def write_zip(output: Path, prefix: str, paths: list[Path]) -> dict[str, str]:
     return manifest
 
 
-def stable_gate(version: str) -> None:
+def stable_gate(version: str, source_commit: str | None = None) -> None:
     if "-" in version:
         return
+    if not source_commit or not COMMIT_RE.fullmatch(source_commit):
+        raise SystemExit("stable release blocked: full source commit is required")
     for name in ("live-codex.json", "windows-native.json"):
         evidence = json.loads((ROOT / "evidence" / name).read_text(encoding="utf-8-sig"))
-        if evidence.get("required_for_stable") and evidence.get("status") != "PASS":
+        if not evidence.get("required_for_stable"):
+            continue
+        if evidence.get("status") != "PASS":
             raise SystemExit(f"stable release blocked: {name} is {evidence.get('status')}")
+        if evidence.get("source_commit") != source_commit:
+            raise SystemExit(f"stable release blocked: {name} is stale")
+        raw_scenarios = evidence.get("scenarios", [])
+        scenario_names = {
+            item.get("name") if isinstance(item, dict) else item
+            for item in raw_scenarios
+            if (isinstance(item, str) and item) or (isinstance(item, dict) and item.get("name"))
+        }
+        missing = sorted(REQUIRED_EXTERNAL_SCENARIOS[name] - scenario_names)
+        if missing:
+            raise SystemExit(f"stable release blocked: {name} lacks scenarios: {', '.join(missing)}")
 
 
 def main() -> int:
@@ -115,16 +134,28 @@ def main() -> int:
     args = parser.parse_args()
 
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
-    stable_gate(version)
     source_commit = resolve_source_commit(args.source_commit)
+
+    output = Path(args.output_dir)
+    if not output.is_absolute():
+        output = (ROOT / output).resolve()
+    else:
+        output = output.resolve()
+    try:
+        relative_output = output.relative_to(ROOT)
+    except ValueError:
+        relative_output = None
+    if relative_output is not None and (not relative_output.parts or relative_output.parts[0] not in {"dist", "build"}):
+        raise SystemExit(f"unsafe output directory inside repository: {output}")
+    output.mkdir(parents=True, exist_ok=True)
+
+    stable_gate(version, source_commit)
     if not args.skip_checks:
         command = [sys.executable, "scripts/run_checks.py"]
         if source_commit:
             command.extend(["--source-commit", source_commit])
         subprocess.run(command, cwd=ROOT, check=True)
 
-    output = (ROOT / args.output_dir).resolve()
-    output.mkdir(parents=True, exist_ok=True)
     names = {
         "user": f"production-site-autopilot-codex-user-v{version}",
         "engineering": f"production-site-autopilot-codex-engineering-v{version}",

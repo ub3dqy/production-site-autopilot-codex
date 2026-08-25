@@ -22,6 +22,10 @@ Use this Skill when the owner asks to create, audit, connect, redesign, fix, mig
 9. A check is `PASS` only when evidence was actually produced. Otherwise report `FAIL` or `NOT_RUN`.
 10. Production deployment is a separate owner decision after local validation and, where available, preview validation.
 
+## Bundled runtime
+
+The Skill directory contains `run.py` and a private `runtime/` copy verified byte-for-byte against the canonical `src/production_site_autopilot/` package. Do not depend on a globally installed Python package. Use the bundled runner for `doctor`, `detect`, `policy`, `snapshot`, `finalize`, `rollback`, and report commands.
+
 ## Modes
 
 - `greenfield`
@@ -41,10 +45,10 @@ Use this Skill when the owner asks to create, audit, connect, redesign, fix, mig
 
 1. Preflight: inspect Git state, files, stack, build system, routes, existing CI, secrets, symlinks/reparse points, oversized files, and project instructions.
 2. Plan: state mode, stack, confidence, profile, allowed work, decisions, and verification targets.
-3. Baseline: run `python -m production_site_autopilot snapshot .`.
+3. Baseline: invoke the bundled runtime with `python .codex/skills/production-site-autopilot/run.py snapshot .` for a project-local installation, or invoke `run.py` from this Skill directory when installed as a native plugin.
 4. Execute: make only bounded changes inside the workspace.
 5. Verify: build, test, lint, route/link checks, accessibility, security, privacy, SEO, and profile-specific gates when applicable.
-6. Finalize: run `python -m production_site_autopilot finalize <run-id> .`.
+6. Finalize: invoke the same bundled runner with `finalize <run-id> .`.
 7. Report: write versioned JSON, Markdown, and HTML evidence under `.production-site/`.
 8. Rollback test: verify the rollback plan or perform it in an isolated copy.
 

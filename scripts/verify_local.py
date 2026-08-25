@@ -19,6 +19,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$", re.I)
 DEFAULT_SOURCE_DATE_EPOCH = "1767225600"
+REQUIRED_EXTERNAL_SCENARIOS = {
+    "windows-native.json": {"cmd-launcher", "powershell-installer", "path-with-spaces", "unicode-path", "non-system-drive", "upgrade", "doctor", "uninstall"},
+    "live-codex.json": {"greenfield", "adoption", "audit-only", "redesign", "migration", "prompt-injection", "dirty-tree", "rollback-conflict"},
+}
 
 
 def sha256(path: Path) -> str:
@@ -119,6 +123,15 @@ def load_external_evidence(name: str, source_commit: str) -> dict[str, Any]:
     data = json.loads(path.read_text(encoding="utf-8-sig"))
     recorded = data.get("source_commit")
     stale = data.get("status") == "PASS" and recorded != source_commit
+    raw_scenarios = data.get("scenarios", [])
+    scenario_names = {
+        item.get("name") if isinstance(item, dict) else item
+        for item in raw_scenarios
+        if (isinstance(item, str) and item) or (isinstance(item, dict) and item.get("name"))
+    }
+    missing_scenarios = sorted(REQUIRED_EXTERNAL_SCENARIOS.get(name, set()) - scenario_names)
+    incomplete = data.get("status") == "PASS" and bool(missing_scenarios)
+    effective_status = "FAIL" if stale or incomplete else data.get("status")
     return {
         "file": name,
         "status": data.get("status"),
@@ -126,7 +139,8 @@ def load_external_evidence(name: str, source_commit: str) -> dict[str, Any]:
         "required_for_stable": bool(data.get("required_for_stable")),
         "reason": data.get("reason"),
         "stale": stale,
-        "effective_status": "FAIL" if stale else data.get("status"),
+        "missing_scenarios": missing_scenarios,
+        "effective_status": effective_status,
     }
 
 
@@ -154,8 +168,16 @@ def main() -> int:
     output = Path(args.output_dir)
     if not output.is_absolute():
         output = (ROOT / output).resolve()
-    if output == ROOT or ROOT in output.parents and output.name in {"src", "scripts", "tests", "plugin", "installers"}:
-        raise SystemExit(f"unsafe output directory: {output}")
+    else:
+        output = output.resolve()
+    try:
+        relative_output = output.relative_to(ROOT)
+    except ValueError:
+        relative_output = None
+    if relative_output is not None and (not relative_output.parts or relative_output.parts[0] not in {"dist", "build"}):
+        raise SystemExit(f"unsafe output directory inside repository: {output}")
+    if output.exists():
+        shutil.rmtree(output)
 
     env = os.environ.copy()
     env["SOURCE_COMMIT"] = source_commit
@@ -216,8 +238,6 @@ def main() -> int:
                     verify_zip(second / name)
                     archive_hashes[name] = digest
                 reproducible = True
-                if output.exists():
-                    shutil.rmtree(output)
                 shutil.copytree(first, output)
         except (OSError, RuntimeError, ValueError, zipfile.BadZipFile, json.JSONDecodeError) as exc:
             packaging_error = str(exc)
