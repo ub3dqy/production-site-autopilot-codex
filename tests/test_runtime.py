@@ -191,12 +191,15 @@ class InstallerAndReleaseTests(unittest.TestCase):
 
     def test_beta_build_is_reproducible(self):
         with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
-            subprocess.run([sys.executable, "scripts/build_release.py", "--output-dir", first, "--skip-checks"], cwd=ROOT, check=True)
-            subprocess.run([sys.executable, "scripts/build_release.py", "--output-dir", second, "--skip-checks"], cwd=ROOT, check=True)
+            common = [sys.executable, "scripts/build_release.py", "--skip-checks", "--source-commit", "a" * 40]
+            subprocess.run([*common, "--output-dir", first], cwd=ROOT, check=True)
+            subprocess.run([*common, "--output-dir", second], cwd=ROOT, check=True)
             for name in ("production-site-autopilot-codex-user-v7.2.0-beta.1.zip", "production-site-autopilot-codex-engineering-v7.2.0-beta.1.zip"):
                 self.assertEqual(hashlib.sha256(Path(first, name).read_bytes()).digest(), hashlib.sha256(Path(second, name).read_bytes()).digest())
                 with zipfile.ZipFile(Path(first, name)) as archive:
                     self.assertTrue(any(item.endswith("/MANIFEST.sha256.json") for item in archive.namelist()))
+                    self.assertFalse(any(".github/workflows" in item for item in archive.namelist()))
+            self.assertEqual(Path(first, "provenance.json").read_bytes(), Path(second, "provenance.json").read_bytes())
 
     def test_stable_gate_rejects_not_run(self):
         spec = importlib.util.spec_from_file_location("build_release", ROOT / "scripts/build_release.py")
@@ -212,6 +215,13 @@ class InstallerAndReleaseTests(unittest.TestCase):
             with unittest.mock.patch.object(module, "ROOT", fake):
                 with self.assertRaises(SystemExit):
                     module.stable_gate("7.2.0")
+
+    def test_local_source_commit_resolution(self):
+        spec = importlib.util.spec_from_file_location("verify_local", ROOT / "scripts/verify_local.py")
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+        self.assertEqual(module.resolve_source_commit("B" * 40), "b" * 40)
 
     def test_repository_integrity(self):
         subprocess.run([sys.executable, "scripts/verify_repository.py"], cwd=ROOT, check=True)
