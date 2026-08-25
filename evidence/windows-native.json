@@ -3,7 +3,7 @@
   "check": "native-windows-runtime",
   "status": "NOT_RUN",
   "required_for_stable": true,
-  "reason": "The evidence file is replaced by CI only after a native Windows job completes.",
+  "reason": "Native Windows local verification has not yet been recorded for this commit.",
   "source_commit": null,
   "scenarios": ["cmd-launcher", "powershell-installer", "path-with-spaces", "unicode-path", "non-system-drive", "upgrade", "doctor", "uninstall"]
 }
