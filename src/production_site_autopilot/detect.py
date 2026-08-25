@@ -70,9 +70,11 @@ def detect(root: Path | str, *, requested_mode: Mode | None = None, confidence_t
         confidence = 0.45
         reasons.append("project type is ambiguous")
     stacks = detect_stack(root_path)
-    if stacks == (Stack.UNKNOWN,):
+    if stacks == (Stack.UNKNOWN,) and mode is not Mode.GREENFIELD:
         confidence = min(confidence, 0.60)
         reasons.append("stack could not be identified")
+    elif stacks == (Stack.UNKNOWN,):
+        reasons.append("stack will be selected during greenfield planning")
     mutation_allowed = mode is not Mode.AUDIT and confidence >= confidence_threshold
     if not mutation_allowed and mode is not Mode.AUDIT:
         reasons.append("confidence below threshold; falling back to audit-only")
