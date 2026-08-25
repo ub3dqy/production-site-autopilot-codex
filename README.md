@@ -4,6 +4,15 @@
 
 > Текущая версия — **v7.2.0-beta.1**. GitHub Actions в этом репозитории недоступны и не входят в контур доверия. Обязательная проверка, воспроизводимая сборка и beta-release evidence выполняются локально. Реальные автономные прогоны Codex и native Windows никогда не считаются выполненными без отдельного машинного evidence-файла со статусом `PASS` и точным source commit.
 
+## Скачать v7.2.0-beta.1 с GitHub
+
+- [User Edition — ZIP ветки](https://github.com/ub3dqy/production-site-autopilot-codex/archive/refs/heads/release/user-v7.2.0-beta.1.zip)
+- [Engineering Edition — ZIP ветки](https://github.com/ub3dqy/production-site-autopilot-codex/archive/refs/heads/release/engineering-v7.2.0-beta.1.zip)
+- [Полный bundle — ZIP ветки](https://github.com/ub3dqy/production-site-autopilot-codex/archive/refs/heads/release/bundle-v7.2.0-beta.1.zip)
+- [Release evidence, SBOM, provenance и контрольные суммы](releases/v7.2.0-beta.1/README.md)
+
+Release-ветки являются Git-native поверхностью распространения и не зависят от Actions. Полный bundle содержит раскрытые User и Engineering Edition, release notes, локальное verification evidence, test evidence, SBOM и provenance. GitHub сам формирует внешнюю ZIP-оболочку ветки, поэтому её байты отличаются от детерминированных локальных ZIP, чьи SHA-256 зафиксированы в release evidence.
+
 ## Что изменено в v7.2
 
 - исходный код, Skill, схемы, тесты и release tooling доступны для просмотра в Git;

@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "check": "deterministic-repository-suite",
+  "status": "PASS",
+  "required_for_stable": true,
+  "source_commit": "1d4ec66c54882a9ed023850249fada103f7d4fb1",
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "platform": "linux",
+  "checks": [
+    {
+      "command": [
+        "/opt/pyvenv/bin/python",
+        "scripts/verify_repository.py"
+      ],
+      "returncode": 0,
+      "duration_seconds": 0.614
+    },
+    {
+      "command": [
+        "/opt/pyvenv/bin/python",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "returncode": 0,
+      "duration_seconds": 5.973
+    },
+    {
+      "command": [
+        "compileall",
+        "src"
+      ],
+      "returncode": 0,
+      "duration_seconds": 0.012
+    }
+  ]
+}
