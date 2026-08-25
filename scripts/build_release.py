@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -13,6 +14,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXED_ZIP_TIME = (2026, 1, 1, 0, 0, 0)
+DEFAULT_SOURCE_DATE_EPOCH = 1767225600  # 2026-01-01T00:00:00Z
+COMMIT_RE = re.compile(r"^[0-9a-f]{40}$", re.I)
 
 
 def sha256(path: Path) -> str:
@@ -23,11 +26,46 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def resolve_source_commit(explicit: str | None = None) -> str | None:
+    candidates = [explicit, os.environ.get("SOURCE_COMMIT")]
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        candidates.append(completed.stdout.strip())
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        pass
+    for candidate in candidates:
+        value = (candidate or "").strip()
+        if COMMIT_RE.fullmatch(value):
+            return value.lower()
+    return None
+
+
+def build_timestamp() -> tuple[int, str]:
+    raw = os.environ.get("SOURCE_DATE_EPOCH", str(DEFAULT_SOURCE_DATE_EPOCH))
+    try:
+        epoch = int(raw)
+    except ValueError as exc:
+        raise SystemExit(f"invalid SOURCE_DATE_EPOCH: {raw}") from exc
+    if epoch < 0:
+        raise SystemExit("SOURCE_DATE_EPOCH must be non-negative")
+    return epoch, time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(epoch))
+
+
 def selected_files(kind: str) -> list[Path]:
     excluded = {".git", "dist", "build", ".production-site", "__pycache__", ".pytest_cache"}
-    roots = ["VERSION", "README.md", "LICENSE.md", "plugin", "installers", "schemas", "src"] if kind == "user" else [
-        "VERSION", "README.md", "LICENSE.md", "SECURITY.md", "pyproject.toml", "plugin", "installers",
-        "schemas", "src", "scripts", "tests", "fixtures", "docs", "evidence", ".github",
+    common = [
+        "VERSION", "README.md", "RELEASE_NOTES.md", "LICENSE.md",
+        "plugin", "installers", "schemas", "src",
+    ]
+    roots = common if kind == "user" else [
+        *common, "SECURITY.md", "pyproject.toml", "scripts", "tests", "fixtures", "docs", "evidence",
+        "VERIFY_LOCAL_WINDOWS.cmd", "VERIFY_LOCAL.sh",
     ]
     paths: list[Path] = []
     for item in roots:
@@ -36,7 +74,8 @@ def selected_files(kind: str) -> list[Path]:
             paths.append(path)
         elif path.is_dir():
             for child in path.rglob("*"):
-                if child.is_file() and not child.is_symlink() and not any(part in excluded for part in child.relative_to(ROOT).parts):
+                relative_parts = child.relative_to(ROOT).parts
+                if child.is_file() and not child.is_symlink() and not any(part in excluded for part in relative_parts):
                     paths.append(child)
     return sorted(set(paths), key=lambda value: value.relative_to(ROOT).as_posix())
 
@@ -69,14 +108,21 @@ def stable_gate(version: str) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Build deterministic local release artifacts.")
     parser.add_argument("--output-dir", default="dist")
     parser.add_argument("--skip-checks", action="store_true")
+    parser.add_argument("--source-commit", help="40-character source commit recorded in provenance.")
     args = parser.parse_args()
+
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     stable_gate(version)
+    source_commit = resolve_source_commit(args.source_commit)
     if not args.skip_checks:
-        subprocess.run([sys.executable, "scripts/run_checks.py"], cwd=ROOT, check=True)
+        command = [sys.executable, "scripts/run_checks.py"]
+        if source_commit:
+            command.extend(["--source-commit", source_commit])
+        subprocess.run(command, cwd=ROOT, check=True)
+
     output = (ROOT / args.output_dir).resolve()
     output.mkdir(parents=True, exist_ok=True)
     names = {
@@ -90,24 +136,41 @@ def main() -> int:
         manifest = write_zip(archive, prefix, selected_files(kind))
         archives[archive.name] = sha256(archive)
         counts[kind] = len(manifest)
-    (output / "SHA256SUMS").write_text("".join(f"{value}  {name}\n" for name, value in sorted(archives.items())), encoding="utf-8")
+
+    (output / "SHA256SUMS").write_text(
+        "".join(f"{value}  {name}\n" for name, value in sorted(archives.items())),
+        encoding="utf-8",
+    )
     test_path = ROOT / "build/test-evidence.json"
-    test_evidence = json.loads(test_path.read_text(encoding="utf-8")) if test_path.exists() else {"schema_version": "1.0", "check": "deterministic-repository-suite", "status": "NOT_RUN"}
+    test_evidence = (
+        json.loads(test_path.read_text(encoding="utf-8"))
+        if test_path.exists()
+        else {"schema_version": "1.0", "check": "deterministic-repository-suite", "status": "NOT_RUN"}
+    )
     (output / "test-evidence.json").write_text(json.dumps(test_evidence, indent=2) + "\n", encoding="utf-8")
+
     sbom = {
-        "bomFormat": "CycloneDX", "specVersion": "1.5", "version": 1,
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.5",
+        "version": 1,
         "metadata": {"component": {"type": "application", "name": "production-site-autopilot", "version": version}},
         "components": [],
         "properties": [{"name": f"{kind}.file.count", "value": str(count)} for kind, count in counts.items()],
     }
     (output / "sbom.cdx.json").write_text(json.dumps(sbom, indent=2) + "\n", encoding="utf-8")
+
+    epoch, built_at = build_timestamp()
     provenance = {
-        "schema_version": "1.0", "version": version, "source_commit": os.environ.get("GITHUB_SHA"),
-        "builder": os.environ.get("GITHUB_WORKFLOW", "local"),
-        "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "artifacts": archives,
+        "schema_version": "1.0",
+        "version": version,
+        "source_commit": source_commit,
+        "builder": os.environ.get("AUTOPILOT_BUILDER", "local"),
+        "source_date_epoch": epoch,
+        "built_at": built_at,
+        "artifacts": archives,
     }
     (output / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"version": version, "artifacts": archives}, indent=2))
+    print(json.dumps({"version": version, "source_commit": source_commit, "artifacts": archives}, indent=2))
     return 0
 
 
