@@ -1,64 +1,92 @@
 # Production Site Autopilot for OpenAI Codex
 
-Универсальный инструмент для создания, подключения, аудита, редизайна, исправления, миграции и доведения сайтов до production с помощью Codex.
+Инструмент для безопасного аудита, создания, подключения, редизайна, исправления и миграции сайтов с помощью Codex.
 
-## Две редакции
+> Текущая версия — **v7.2.0-beta.1**. GitHub Actions в этом репозитории недоступны и не входят в контур доверия. Обязательная проверка, воспроизводимая сборка и beta-release evidence выполняются локально. Реальные автономные прогоны Codex и native Windows никогда не считаются выполненными без отдельного машинного evidence-файла со статусом `PASS` и точным source commit.
 
-| Редакция | Назначение |
-|---|---|
-| **User Edition** | Одна точка входа, автоматический выбор режима и минимальное участие пользователя |
-| **Engineering Edition** | Полный Skill, contracts, gates, stack playbooks, validators, tests и release tooling |
+## Что изменено в v7.2
 
-После публикации релиза обе редакции доступны на странице [Releases](../../releases/tag/v7.1.0).
+- исходный код, Skill, схемы, тесты и release tooling доступны для просмотра в Git;
+- безопасные границы исполняются policy-движком `ALLOW / CONFIRM / DENY`;
+- низкая уверенность определения режима автоматически включает `audit-only`;
+- файлы проекта рассматриваются как недоверенный ввод и не могут отменить системную политику;
+- перед изменениями создаётся baseline, после изменений — manifest, а rollback проверяет конфликты;
+- отчёты сохраняются в JSON, Markdown и HTML с версионированной схемой;
+- версия задаётся единственным файлом `VERSION`;
+- локальная сборка создаёт воспроизводимые ZIP, checksums, SBOM, provenance и test evidence;
+- один кроссплатформенный verifier дважды собирает релиз и сравнивает SHA-256;
+- native Windows и live Codex имеют независимые статусы `PASS`, `FAIL` или `NOT_RUN`;
+- stable-релиз запрещён, пока обязательные live/Windows evidence не имеют актуальный `PASS` для того же commit.
 
-## Быстрый запуск User Edition
-
-### Windows
-
-1. Скачайте `production-site-autopilot-codex-user-v7.1.0.zip`.
-2. Распакуйте архив.
-3. Запустите `START_SITE_AUTOPILOT_WINDOWS.cmd`.
-4. Выберите каталог проекта.
-
-После установки можно открыть любой проект в Codex и написать:
+## Структура
 
 ```text
-Создай или доведи этот сайт до production. Сам всё проанализируй, исправь и проверь.
+src/production_site_autopilot/     исполняемый runtime
+plugin/                            нативный Skill/plugin layout
+installers/                        резервная локальная установка
+schemas/                           JSON Schemas
+tests/                             детерминированные проверки
+fixtures/                          эталонные проекты и угрозы
+scripts/                           локальная проверка и release tooling
+docs/                              архитектура, профили и threat model
+evidence/                          машинные статусы внешних проверок
+VERIFY_LOCAL_WINDOWS.cmd           единый Windows verifier
+VERIFY_LOCAL.sh                    единый macOS/Linux verifier
 ```
 
-Autopilot сам определяет режим и стек, создаёт безопасную конфигурацию, выполняет доступную работу, повторяет проверки и сохраняет итог в:
+## Быстрый запуск
+
+Скопируйте каталог `plugin/skills/production-site-autopilot` в `.codex/skills/production-site-autopilot` выбранного проекта либо используйте резервный установщик без административных прав:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File installers/install.ps1 -ProjectPath "C:\path\to\site"
+```
+
+```bash
+./installers/install.sh /path/to/site
+```
+
+После установки откройте проект в Codex и напишите:
 
 ```text
-.production-site/results/latest.md
-.production-site/results/latest.json
+Доведи этот сайт до production-ready состояния. Сначала выполни безопасный preflight, сам выбери режим и стек, затем сделай всю разрешённую работу и сохрани evidence.
 ```
 
-## Содержимое репозитория
+## Каноническая локальная проверка
 
-```text
-user/          # распакованная пользовательская редакция v7.1.0
-engineering/   # распакованная инженерная редакция v7.1.0
-.github/       # автоматическая проверка и публикация релиза
-SHA256SUMS     # контрольные суммы релизных ZIP
+Для точного release evidence передайте полный commit SHA.
+
+```cmd
+VERIFY_LOCAL_WINDOWS.cmd --source-commit <40-character-commit>
 ```
 
-## Контрольные суммы v7.1.0
-
-```text
-90a118d52020b2307c8447ea81ad6cd520492d255a274440adaa0cf03d257886  production-site-autopilot-codex-user-v7.1.0.zip
-97666e9ba94e41a7c4cd103d3023bf1fd7c243f15ef43dec96fa45822dfaaac6  production-site-autopilot-codex-engineering-v7.1.0.zip
+```bash
+./VERIFY_LOCAL.sh --source-commit <40-character-commit>
 ```
 
-## Проверенный статус
+Verifier выполняет repository integrity, unit tests, compilation, installer lifecycle, две независимые сборки, сравнение архивов, внутренние manifests, `SHA256SUMS`, SBOM и provenance. Результаты сохраняются в `dist/` и `build/local-verification.json`. Подробности — в [docs/local-verification.md](docs/local-verification.md).
 
-- artifact coverage: **80/80 PASS**;
-- configuration scenarios: **18/18 PASS**;
-- validator regression tests: **14/14 PASS**;
-- Autopilot deterministic tests: **9/9 PASS**;
-- UX и lifecycle checks: **36/36 PASS**;
-- live Codex behavioral suite: **NOT_RUN**;
-- native Windows runtime в исходной Linux-среде сборки: **NOT_RUN**.
+Для отдельных диагностических команд:
+
+```bash
+PYTHONPATH=src python -m production_site_autopilot doctor .
+PYTHONPATH=src python -m production_site_autopilot detect .
+```
+
+Результаты работы Autopilot сохраняются в `.production-site/results/latest.{json,md,html}` и `.production-site/runs/<run-id>/`.
 
 ## Безопасные границы
 
-Без отдельного решения пользователя Autopilot не меняет URL, домен или основной стек, не удаляет страницы и данные, не публикует неподтверждённые claims, не включает tracking, не покупает услуги и не выполняет production deployment. Блокирующие решения объединяются максимум в один вопрос.
+Автоматически разрешены чтение, локальные тесты, локальная сборка, отчётность и обратимые изменения внутри workspace. Подтверждение владельца требуется для удаления данных/страниц, установки зависимостей, сетевых действий, изменения домена, аналитики, CI, push и любого deployment. Покупки, вывод секретов, обход policy, force-push и запись вне workspace запрещены.
+
+Один checkpoint может содержать один **консолидированный пакет решений**, но неизвестные юридические, коммерческие и брендовые решения не подменяются догадками.
+
+## Production-ready профили
+
+Поддерживаются профили `MARKETING_SITE`, `WEB_APPLICATION`, `COMMERCE` и `REGULATED_OR_HIGH_RISK`. Последний по умолчанию работает только в режиме аудита. Статусы результата: `AUDIT_COMPLETE`, `READY_FOR_REVIEW`, `READY_FOR_PREVIEW`, `READY_FOR_DEPLOYMENT`, `READY_WITH_DEFERRED_ITEMS`, `BLOCKED`, `FAILED`.
+
+## Честность evidence
+
+Файлы `evidence/live-codex.json` и `evidence/windows-native.json` содержат только `PASS`, `FAIL` или `NOT_RUN`. `PASS` считается действительным только для указанного полного source commit. `NOT_RUN` не преобразуется в PASS: для beta он явно публикуется как ограничение, а stable release блокируется.
+
+Лицензия явно разрешает скачивание, установку и локальное использование продукта, сохраняя ограничения на перепродажу и распространение. Политика сообщения об уязвимостях находится в [SECURITY.md](SECURITY.md).

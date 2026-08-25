@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+.production-site/
+node_modules/
+.DS_Store
+Thumbs.db
+*.zip
+*.tar.gz
