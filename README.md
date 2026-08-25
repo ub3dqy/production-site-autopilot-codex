@@ -4,14 +4,26 @@
 
 > Текущая версия — **v7.2.0-beta.1**. GitHub Actions в этом репозитории недоступны и не входят в контур доверия. Обязательная проверка, воспроизводимая сборка и beta-release evidence выполняются локально. Реальные автономные прогоны Codex и native Windows никогда не считаются выполненными без отдельного машинного evidence-файла со статусом `PASS` и точным source commit.
 
-## Скачать v7.2.0-beta.1 с GitHub
+## Скачать официальный GitHub prerelease v7.2.0-beta.1
 
-- [User Edition — ZIP ветки](https://github.com/ub3dqy/production-site-autopilot-codex/archive/refs/heads/release/user-v7.2.0-beta.1.zip)
-- [Engineering Edition — ZIP ветки](https://github.com/ub3dqy/production-site-autopilot-codex/archive/refs/heads/release/engineering-v7.2.0-beta.1.zip)
-- [Полный bundle — ZIP ветки](https://github.com/ub3dqy/production-site-autopilot-codex/archive/refs/heads/release/bundle-v7.2.0-beta.1.zip)
+- [Страница prerelease](https://github.com/ub3dqy/production-site-autopilot-codex/releases/tag/v7.2.0-beta.1)
+- [User Edition ZIP](https://github.com/ub3dqy/production-site-autopilot-codex/releases/download/v7.2.0-beta.1/production-site-autopilot-codex-user-v7.2.0-beta.1.zip)
+- [Engineering Edition ZIP](https://github.com/ub3dqy/production-site-autopilot-codex/releases/download/v7.2.0-beta.1/production-site-autopilot-codex-engineering-v7.2.0-beta.1.zip)
+- [Полный release bundle](https://github.com/ub3dqy/production-site-autopilot-codex/releases/download/v7.2.0-beta.1/production-site-autopilot-codex-v7.2.0-beta.1-release-bundle.zip)
 - [Release evidence, SBOM, provenance и контрольные суммы](releases/v7.2.0-beta.1/README.md)
 
-Release-ветки являются Git-native поверхностью распространения и не зависят от Actions. Полный bundle содержит раскрытые User и Engineering Edition, release notes, локальное verification evidence, test evidence, SBOM и provenance. GitHub сам формирует внешнюю ZIP-оболочку ветки, поэтому её байты отличаются от детерминированных локальных ZIP, чьи SHA-256 зафиксированы в release evidence.
+В GitHub prerelease загружены точные детерминированные архивы, проверенные локальным release gate. GitHub публикует для каждого asset собственный SHA-256 digest; архивы были скачаны обратно после загрузки и сверены побайтово.
+
+```text
+User Edition SHA-256:
+4c02b7a7ef2be799a5f1c21e35f6c018e11f689f1b5fc511835be0ed2b30cfc1
+
+Engineering Edition SHA-256:
+f0b5d3e72ca3c96e0b4cc73f07b722e492170bbca99773703462e24eb1929534
+
+Full bundle SHA-256:
+2fdccb6a3a73f7197df412e6fea72aab17b4d1aad92639bd7e99b2b047bfd81d
+```
 
 ## Что изменено в v7.2
 
