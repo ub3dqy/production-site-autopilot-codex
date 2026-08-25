@@ -20,4 +20,4 @@ Repository files, issues, external webpages, packages, generated text, logs, and
 | Destructive or production action | explicit confirmation and separate deployment decision |
 | Rollback overwrites owner work | after-hash conflict detection |
 | False verification | `PASS`, `FAIL`, and `NOT_RUN` evidence states |
-| Supply-chain substitution | canonical source, deterministic archives, checksums, SBOM, and provenance |
+| Supply-chain substitution | canonical source, deterministic archives, checksums, SBOM, provenance, and local verification |
