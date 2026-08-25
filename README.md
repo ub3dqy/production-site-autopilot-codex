@@ -4,6 +4,19 @@
 
 > Текущая версия — **v7.2.0-beta.1**. GitHub Actions в этом репозитории недоступны и не входят в контур доверия. Обязательная проверка, воспроизводимая сборка и beta-release evidence выполняются локально. Реальные автономные прогоны Codex и native Windows никогда не считаются выполненными без отдельного машинного evidence-файла со статусом `PASS` и точным source commit.
 
+## Запустить Autopilot из папки сайта в Codex
+
+Откройте в Codex папку или Git-репозиторий сайта и вставьте одну команду:
+
+```text
+Работай в текущей открытой папке как в целевом проекте сайта. Прочитай и полностью выполни официальный bootstrap-промт Production Site Autopilot: https://raw.githubusercontent.com/ub3dqy/production-site-autopilot-codex/main/START_AUTOPILOT.md . Не ограничивайся установкой или планом: заверши один полный безопасный checkpoint и выдай фактическое evidence.
+```
+
+Промт сам предписывает Codex проверить или установить закреплённую User Edition, проверить SHA-256, создать baseline, определить режим и стек, выполнить все разрешённые улучшения, провести локальные проверки и сформировать rollback/evidence. Пользователю не нужно вручную указывать пути, стек или команды установки.
+
+- [Полный универсальный промт на русском](START_AUTOPILOT.md)
+- [Universal bootstrap prompt in English](START_AUTOPILOT_EN.md)
+
 ## Скачать официальный GitHub prerelease v7.2.0-beta.1
 
 - [Страница prerelease](https://github.com/ub3dqy/production-site-autopilot-codex/releases/tag/v7.2.0-beta.1)
@@ -42,6 +55,8 @@ Full bundle SHA-256:
 ## Структура
 
 ```text
+START_AUTOPILOT.md                 универсальный RU bootstrap-промт для Codex
+START_AUTOPILOT_EN.md              universal EN bootstrap prompt for Codex
 src/production_site_autopilot/     исполняемый runtime
 plugin/                            нативный Skill/plugin layout
 installers/                        резервная локальная установка
@@ -55,7 +70,7 @@ VERIFY_LOCAL_WINDOWS.cmd           единый Windows verifier
 VERIFY_LOCAL.sh                    единый macOS/Linux verifier
 ```
 
-## Быстрый запуск
+## Ручная установка
 
 Скопируйте каталог `plugin/skills/production-site-autopilot` в `.codex/skills/production-site-autopilot` выбранного проекта либо используйте резервный установщик без административных прав:
 
