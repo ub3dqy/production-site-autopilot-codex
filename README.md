@@ -2,7 +2,7 @@
 
 Инструмент для безопасного аудита, создания, подключения, редизайна, исправления и миграции сайтов с помощью Codex.
 
-> Текущая ветка содержит **v7.2.0-beta.1**. Детерминированные проверки и кроссплатформенный CI находятся в репозитории. Реальные автономные прогоны Codex и production deployment никогда не считаются выполненными без отдельного машинного evidence-файла со статусом `PASS`.
+> Текущая версия — **v7.2.0-beta.1**. GitHub Actions в этом репозитории недоступны и не входят в контур доверия. Обязательная проверка, воспроизводимая сборка и beta-release evidence выполняются локально. Реальные автономные прогоны Codex и native Windows никогда не считаются выполненными без отдельного машинного evidence-файла со статусом `PASS` и точным source commit.
 
 ## Что изменено в v7.2
 
@@ -13,9 +13,10 @@
 - перед изменениями создаётся baseline, после изменений — manifest, а rollback проверяет конфликты;
 - отчёты сохраняются в JSON, Markdown и HTML с версионированной схемой;
 - версия задаётся единственным файлом `VERSION`;
-- сборка создаёт воспроизводимые ZIP, checksums, SBOM, provenance и test evidence;
-- Linux, macOS и Windows проверяются отдельными CI jobs;
-- stable-релиз запрещён, пока обязательные live/Windows evidence не имеют статус `PASS`.
+- локальная сборка создаёт воспроизводимые ZIP, checksums, SBOM, provenance и test evidence;
+- один кроссплатформенный verifier дважды собирает релиз и сравнивает SHA-256;
+- native Windows и live Codex имеют независимые статусы `PASS`, `FAIL` или `NOT_RUN`;
+- stable-релиз запрещён, пока обязательные live/Windows evidence не имеют актуальный `PASS` для того же commit.
 
 ## Структура
 
@@ -26,10 +27,11 @@ installers/                        резервная локальная уст�
 schemas/                           JSON Schemas
 tests/                             детерминированные проверки
 fixtures/                          эталонные проекты и угрозы
-scripts/                           проверки и release tooling
+scripts/                           локальная проверка и release tooling
 docs/                              архитектура, профили и threat model
 evidence/                          машинные статусы внешних проверок
-.github/workflows/                 CI, security, live-eval и release
+VERIFY_LOCAL_WINDOWS.cmd           единый Windows verifier
+VERIFY_LOCAL.sh                    единый macOS/Linux verifier
 ```
 
 ## Быстрый запуск
@@ -50,15 +52,28 @@ powershell -ExecutionPolicy Bypass -File installers/install.ps1 -ProjectPath "C:
 Доведи этот сайт до production-ready состояния. Сначала выполни безопасный preflight, сам выбери режим и стек, затем сделай всю разрешённую работу и сохрани evidence.
 ```
 
-## Локальная проверка
+## Каноническая локальная проверка
+
+Для точного release evidence передайте полный commit SHA.
+
+```cmd
+VERIFY_LOCAL_WINDOWS.cmd --source-commit <40-character-commit>
+```
 
 ```bash
-python scripts/run_checks.py
+./VERIFY_LOCAL.sh --source-commit <40-character-commit>
+```
+
+Verifier выполняет repository integrity, unit tests, compilation, installer lifecycle, две независимые сборки, сравнение архивов, внутренние manifests, `SHA256SUMS`, SBOM и provenance. Результаты сохраняются в `dist/` и `build/local-verification.json`. Подробности — в [docs/local-verification.md](docs/local-verification.md).
+
+Для отдельных диагностических команд:
+
+```bash
 PYTHONPATH=src python -m production_site_autopilot doctor .
 PYTHONPATH=src python -m production_site_autopilot detect .
 ```
 
-Результаты работы сохраняются в `.production-site/results/latest.{json,md,html}` и `.production-site/runs/<run-id>/`.
+Результаты работы Autopilot сохраняются в `.production-site/results/latest.{json,md,html}` и `.production-site/runs/<run-id>/`.
 
 ## Безопасные границы
 
@@ -72,6 +87,6 @@ PYTHONPATH=src python -m production_site_autopilot detect .
 
 ## Честность evidence
 
-Файлы `evidence/live-codex.json` и `evidence/windows-native.json` содержат только `PASS`, `FAIL` или `NOT_RUN`. `NOT_RUN` не преобразуется в PASS и блокирует stable release, когда проверка объявлена обязательной.
+Файлы `evidence/live-codex.json` и `evidence/windows-native.json` содержат только `PASS`, `FAIL` или `NOT_RUN`. `PASS` считается действительным только для указанного полного source commit. `NOT_RUN` не преобразуется в PASS: для beta он явно публикуется как ограничение, а stable release блокируется.
 
 Лицензия явно разрешает скачивание, установку и локальное использование продукта, сохраняя ограничения на перепродажу и распространение. Политика сообщения об уязвимостях находится в [SECURITY.md](SECURITY.md).
