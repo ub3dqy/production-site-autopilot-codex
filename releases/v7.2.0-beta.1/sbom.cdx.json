@@ -1,0 +1,23 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "production-site-autopilot",
+      "version": "7.2.0-beta.1"
+    }
+  },
+  "components": [],
+  "properties": [
+    {
+      "name": "user.file.count",
+      "value": "32"
+    },
+    {
+      "name": "engineering.file.count",
+      "value": "53"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": "1.0",
+  "check": "canonical-local-verification",
+  "status": "PASS",
+  "version": "7.2.0-beta.1",
+  "source_commit": "1d4ec66c54882a9ed023850249fada103f7d4fb1",
+  "verified_at": "2026-08-25T07:22:01Z",
+  "host": {
+    "platform": "Linux-6.18.35-x86_64-with-glibc2.41",
+    "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+    "os_name": "posix"
+  },
+  "github_actions": {
+    "available": false,
+    "required": false
+  },
+  "deterministic_suite": "PASS",
+  "reproducible_release": "PASS",
+  "packaging_error": null,
+  "archives": {
+    "production-site-autopilot-codex-engineering-v7.2.0-beta.1.zip": "f0b5d3e72ca3c96e0b4cc73f07b722e492170bbca99773703462e24eb1929534",
+    "production-site-autopilot-codex-user-v7.2.0-beta.1.zip": "4c02b7a7ef2be799a5f1c21e35f6c018e11f689f1b5fc511835be0ed2b30cfc1"
+  },
+  "archive_file_counts": {
+    "production-site-autopilot-codex-engineering-v7.2.0-beta.1.zip": 53,
+    "production-site-autopilot-codex-user-v7.2.0-beta.1.zip": 32
+  },
+  "external_evidence": {
+    "windows_native": {
+      "file": "windows-native.json",
+      "status": "NOT_RUN",
+      "source_commit": null,
+      "required_for_stable": true,
+      "reason": "Native Windows local verification has not yet been recorded for this commit.",
+      "stale": false,
+      "missing_scenarios": [],
+      "effective_status": "NOT_RUN"
+    },
+    "live_codex": {
+      "file": "live-codex.json",
+      "status": "NOT_RUN",
+      "source_commit": null,
+      "required_for_stable": true,
+      "reason": "A real Codex runtime invocation has not been recorded for this commit.",
+      "stale": false,
+      "missing_scenarios": [],
+      "effective_status": "NOT_RUN"
+    }
+  },
+  "beta_release_eligible": true,
+  "stable_release_eligible": false,
+  "commands": [
+    {
+      "command": [
+        "/opt/pyvenv/bin/python",
+        "scripts/run_checks.py",
+        "--source-commit",
+        "1d4ec66c54882a9ed023850249fada103f7d4fb1"
+      ],
+      "returncode": 0,
+      "duration_seconds": 7.239
+    },
+    {
+      "command": [
+        "/opt/pyvenv/bin/python",
+        "scripts/build_release.py",
+        "--output-dir",
+        "/tmp/autopilot-release-a-mrhgsqvf",
+        "--skip-checks",
+        "--source-commit",
+        "1d4ec66c54882a9ed023850249fada103f7d4fb1"
+      ],
+      "returncode": 0,
+      "duration_seconds": 0.716
+    },
+    {
+      "command": [
+        "/opt/pyvenv/bin/python",
+        "scripts/build_release.py",
+        "--output-dir",
+        "/tmp/autopilot-release-b-f9rsf89t",
+        "--skip-checks",
+        "--source-commit",
+        "1d4ec66c54882a9ed023850249fada103f7d4fb1"
+      ],
+      "returncode": 0,
+      "duration_seconds": 0.65
+    }
+  ]
+}

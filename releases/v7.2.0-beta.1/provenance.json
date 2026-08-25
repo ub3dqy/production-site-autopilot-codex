@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "version": "7.2.0-beta.1",
+  "source_commit": "1d4ec66c54882a9ed023850249fada103f7d4fb1",
+  "builder": "local-verification",
+  "source_date_epoch": 1767225600,
+  "built_at": "2026-01-01T00:00:00Z",
+  "artifacts": {
+    "production-site-autopilot-codex-user-v7.2.0-beta.1.zip": "4c02b7a7ef2be799a5f1c21e35f6c018e11f689f1b5fc511835be0ed2b30cfc1",
+    "production-site-autopilot-codex-engineering-v7.2.0-beta.1.zip": "f0b5d3e72ca3c96e0b4cc73f07b722e492170bbca99773703462e24eb1929534"
+  }
+}
