@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Production Site Autopilot run result",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version", "run_id", "autopilot_version", "source_commit", "detected_mode",
+    "detected_stack", "confidence", "status", "changed_files", "checks", "owner_decisions",
+    "blocked", "deferred", "residual_risks", "rollback"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "autopilot_version": {"type": "string", "minLength": 1},
+    "source_commit": {"type": ["string", "null"]},
+    "detected_mode": {"enum": ["greenfield", "adoption", "audit", "redesign", "migration"]},
+    "detected_stack": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "status": {"enum": ["AUDIT_COMPLETE", "READY_FOR_REVIEW", "READY_FOR_PREVIEW", "READY_FOR_DEPLOYMENT", "READY_WITH_DEFERRED_ITEMS", "BLOCKED", "FAILED"]},
+    "changed_files": {"type": "array"},
+    "checks": {"type": "array"},
+    "owner_decisions": {"type": "array"},
+    "blocked": {"type": "array"},
+    "deferred": {"type": "array"},
+    "residual_risks": {"type": "array"},
+    "rollback": {"type": "object"}
+  }
+}

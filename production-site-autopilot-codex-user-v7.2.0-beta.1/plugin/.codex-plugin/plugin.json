@@ -1,0 +1,9 @@
+{
+  "schema_version": "1",
+  "name": "production-site-autopilot",
+  "version": "7.2.0-beta.1",
+  "display_name": "Production Site Autopilot",
+  "description": "Safety-oriented site audit, creation, adoption, redesign, migration, validation, reporting, and rollback workflow.",
+  "skills": ["skills/production-site-autopilot"],
+  "entry_skill": "production-site-autopilot"
+}
